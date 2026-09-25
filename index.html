@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>香港國際機場 - 抵港航班與轉機安檢資訊</title>
+  <style>
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      margin: 0;
+      padding: 24px;
+    }
+    
+    .container { max-width: 1380px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 16px;
+      gap: 12px;
+    }
+    
+    .title-area { display: flex; align-items: center; gap: 12px; }
+    .badge {
+      background-color: #2563eb;
+      color: #ffffff;
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    h1 { margin: 0; font-size: 1.6rem; color: #1e293b; }
+    #update-time { color: #64748b; font-size: 0.9rem; font-family: monospace; }
+
+    /* 控制面板 */
+    .filter-card {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
+    .filter-group label { font-size: 0.82rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    
+    .filter-group select, .filter-group input {
+      background-color: #f8fafc;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .filter-group select:focus, .filter-group input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    /* 切換按鈕 */
+    .btn-toggle {
+      background-color: #e2e8f0;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .btn-toggle.active {
+      background-color: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
+    /* 表格樣式 */
+    .table-responsive {
+      overflow-x: auto;
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    
+    th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      padding: 16px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; vertical-align: middle; }
+    tr:hover { background-color: #f8fafc; }
+
+    .time-col { font-family: monospace; font-size: 1.05rem; color: #334155; font-weight: 600; }
+    .flight-no { font-weight: bold; color: #0f172a; }
+    .gate-no { font-weight: 800; color: #d97706; font-size: 1.1rem; font-family: monospace; }
+    
+    /* 轉機安檢站醒目樣式 */
+    .transfer-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      font-family: monospace;
+      background-color: #f3e8ff;
+      color: #6b21a8;
+      border: 1px solid #d8b4fe;
+    }
+
+    /* 轉機人數輸入組件 */
+    .pax-input-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pax-input {
+      width: 70px;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: monospace;
+      text-align: center;
+      outline: none;
+    }
+    .pax-input:focus { border-color: #2563eb; }
+    .btn-confirm-pax {
+      background-color: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-confirm-pax:hover { background-color: #1d4ed8; }
+    .pax-locked-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: #334155;
+    }
+
+    /* 狀態標籤 */
+    .status-tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .status-arrived { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .status-delayed { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .status-sched { background-color: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+    .loading-cell { text-align: center; padding: 40px; color: #64748b; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="title-area">
+        <span class="badge">HKG 機場</span>
+        <h1>香港國際機場 - 抵港航班與轉機安檢</h1>
+      </div>
+      <div id="update-time">載入資料中...</div>
+    </header>
+
+    <div class="filter-card">
+      <div class="filter-group" style="flex: 0 0 auto;">
+        <label>顯示範圍</label>
+        <button id="toggle-8h-btn" class="btn-toggle active" onclick="toggleEightHourFilter()">
+          ⏱️ 僅顯示 8 小時內航班
+        </button>
+      </div>
+
+      <div class="filter-group">
+        <label for="airline-select">篩選航空公司</label>
+        <select id="airline-select" onchange="filterFlights()">
+          <option value="ALL">全部航空公司</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="search-input">搜尋</label>
+        <input type="text" id="search-input" placeholder="航班編號 / 城市 / 閘口..." oninput="filterFlights()">
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>預定時間</th>
+            <th>最新時間</th>
+            <th>航班編號</th>
+            <th>出發地</th>
+            <th>橋門 (Gate)</th>
+            <th>最近轉機安檢站</th>
+            <th>轉機人數</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody id="flight-list">
+          <tr>
+            <td colspan="8" class="loading-cell">正在獲取最新航班與轉機安檢站資料...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let rawFlightData = [];
+    let onlyEightHours = true; // 預設 8 小時篩選
+
+    function getTodayDateStr() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 依據閘口 (Gate) 計算最近轉機安檢站
+    function getNearestTransferStation(gateStr) {
+      if (!gateStr || gateStr === '-') return '-';
+      
+      const gateNum = parseInt(gateStr.replace(/[^0-9]/g, ''), 10);
+      if (isNaN(gateNum)) return '-';
+
+      if (gateNum >= 1 && gateNum <= 4) {
+        return 'E2';
+      } else if (gateNum >= 5 && gateNum <= 9) {
+        return 'E1';
+      } else if (gateNum >= 10 && gateNum <= 12) {
+        return 'E1 / E2';
+      } else if (gateNum >= 13 && gateNum <= 22) {
+        return 'T3';
+      } else if (gateNum >= 23 && gateNum <= 36) {
+        return 'T3 / T5';
+      } else if (gateNum >= 40 && gateNum <= 50) {
+        return 'T5';
+      } else if (gateNum >= 60 && gateNum <= 71) {
+        return 'T6';
+      } else if (gateNum >= 201 && gateNum <= 230) {
+        return 'M1 (中場)';
+      }
+      return 'E1 / E2';
+    }
+
+    // 取得轉機人數的 LocalStorage key
+    function getPaxStorageKey(flightKey) {
+      const dateStr = getTodayDateStr();
+      return `hkg_pax_${dateStr}_${flightKey}`;
+    }
+
+    // 保存並鎖定轉機人數 (永久不可修改)
+    function lockPaxCount(flightKey) {
+      const inputEl = document.getElementById(`pax-input-${flightKey}`);
+      if (!inputEl) return;
+      
+      const val = inputEl.value.trim();
+      if (val === '' || isNaN(val) || parseInt(val, 10) < 0) {
+        alert('請輸入有效的轉機人數數字！');
+        return;
+      }
+
+      const numVal = parseInt(val, 10);
+      if (confirm(`確定輸入轉機人數為 ${numVal} 人？\n確定後將永久鎖定，無法修改！`)) {
+        const storageKey = getPaxStorageKey(flightKey);
+        localStorage.setItem(storageKey, numVal);
+        filterFlights(); // 重新繪製表格
+      }
+    }
+
+    async function fetchArrivalData() {
+      const dateStr = getTodayDateStr();
+      const targetUrl = `https://www.hongkongairport.com/flightinfo-rest/rest/flights/past?date=${dateStr}&lang=zh_TW&arrival=true`;
+      
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+      ];
+
+      let json = null;
+
+      for (const proxyUrl of proxies) {
+        try {
+          const res = await fetch(proxyUrl);
+          if (res.ok) {
+            json = await res.json();
+            if (json) break;
+          }
+        } catch (err) {
+          console.warn(`代理失敗，嘗試下一個...`);
+        }
+      }
+
+      if (json) {
+        rawFlightData = json[0]?.list || [];
+        populateAirlineFilter(rawFlightData);
+        filterFlights();
+        document.getElementById('update-time').innerText = `最後更新: ${new Date().toLocaleTimeString()}`;
+      } else {
+        document.getElementById('flight-list').innerHTML = `
+          <tr><td colspan="8" class="loading-cell" style="color: #ef4444;">無法讀取航班資訊，請確認網絡或重新整理。</td></tr>`;
+      }
+    }
+
+    // 檢查時間是否在 8 小時之內 (-15分鐘 ~ +480分鐘)
+    function isWithinEightHours(timeStr, updateTimeStr) {
+      if (!timeStr && !updateTimeStr) return true;
+
+      const targetTimeStr = updateTimeStr || timeStr;
+      const parts = targetTimeStr.split(':').map(Number);
+      if (parts.length < 2) return true;
+
+      const now = new Date();
+      const flightTime = new Date();
+      flightTime.setHours(parts[0], parts[1], 0, 0);
+
+      const diffInMinutes = (flightTime - now) / (1000 * 60);
+      return diffInMinutes >= -15 && diffInMinutes <= 480;
+    }
+
+    function toggleEightHourFilter() {
+      onlyEightHours = !onlyEightHours;
+      const btn = document.getElementById('toggle-8h-btn');
+      if (onlyEightHours) {
+        btn.classList.add('active');
+        btn.innerText = '⏱️ 僅顯示 8 小時內航班';
+      } else {
+        btn.classList.remove('active');
+        btn.innerText = '顯示全天航班';
+      }
+      filterFlights();
+    }
+
+    function populateAirlineFilter(flights) {
+      const airlineSelect = document.getElementById('airline-select');
+      const selectedValue = airlineSelect.value;
+      const airlineSet = new Set();
+
+      flights.forEach(item => {
+        if (item.flight && Array.isArray(item.flight)) {
+          item.flight.forEach(f => { if (f.airline) airlineSet.add(f.airline); });
+        }
+      });
+
+      airlineSelect.innerHTML = '<option value="ALL">全部航空公司</option>';
+      Array.from(airlineSet).sort().forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = `${code} 航空`;
+        airlineSelect.appendChild(opt);
+      });
+
+      airlineSelect.value = selectedValue;
+    }
+
+    function filterFlights() {
+      const selectedAirline = document.getElementById('airline-select').value;
+      const keyword = document.getElementById('search-input').value.toLowerCase().trim();
+
+      const filtered = rawFlightData.filter(item => {
+        const matchTime = !onlyEightHours || isWithinEightHours(item.time, item.time_update);
+        const matchAirline = (selectedAirline === 'ALL') || 
+          item.flight.some(f => f.airline === selectedAirline);
+        const flightNumbersStr = item.flight.map(f => `${f.airline}${f.number}`).join(' ').toLowerCase();
+        const originStr = item.origin ? item.origin.join(' ').toLowerCase() : '';
+        const gateStr = item.gate || '';
+        const matchKeyword = !keyword || flightNumbersStr.includes(keyword) || originStr.includes(keyword) || gateStr.includes(keyword);
+
+        return matchTime && matchAirline && matchKeyword;
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(flights) {
+      const tbody = document.getElementById('flight-list');
+      tbody.innerHTML = '';
+
+      if (flights.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">沒有找到符合條件的抵港航班。</td></tr>';
+        return;
+      }
+
+      flights.forEach(item => {
+        const flightNos = item.flight.map(f => `${f.airline} ${f.number}`).join(' / ');
+        const mainFlightKey = item.flight[0] ? `${item.flight[0].airline}${item.flight[0].number}` : Math.random().toString();
+        const origin = item.origin ? item.origin.join(', ') : '-';
+        const gate = item.gate || '-';
+        const transferStation = getNearestTransferStation(gate);
+        
+        // 轉機人數狀態 (是否已鎖定)
+        const storageKey = getPaxStorageKey(mainFlightKey);
+        const savedPax = localStorage.getItem(storageKey);
+
+        let paxCellHtml = '';
+        if (savedPax !== null) {
+          // 已鎖定，無法修改
+          paxCellHtml = `<span class="pax-locked-badge">🔒 ${savedPax} 人</span>`;
+        } else {
+          // 未輸入，顯示輸入框與確定按鈕
+          paxCellHtml = `
+            <div class="pax-input-group">
+              <input type="number" id="pax-input-${mainFlightKey}" class="pax-input" placeholder="人數" min="0">
+              <button class="btn-confirm-pax" onclick="lockPaxCount('${mainFlightKey}')">確定</button>
+            </div>
+          `;
+        }
+
+        let statusClass = 'status-sched';
+        if (item.status.includes('抵達') || item.status.includes('Arrived')) {
+          statusClass = 'status-arrived';
+        } else if (item.status.includes('延誤') || item.status.includes('Delayed')) {
+          statusClass = 'status-delayed';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="time-col">${item.time || '-'}</td>
+          <td class="time-col">${item.time_update || item.time || '-'}</td>
+          <td class="flight-no">${flightNos}</td>
+          <td>${origin}</td>
+          <td class="gate-no">${gate}</td>
+          <td><span class="transfer-badge">${transferStation}</span></td>
+          <td>${paxCellHtml}</td>
+          <td><span class="status-tag ${statusClass}">${item.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    fetchArrivalData();
+    setInterval(fetchArrivalData, 60000);
+  </script>
+</body>
+</html>
